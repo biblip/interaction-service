@@ -5,7 +5,6 @@ import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -13,7 +12,7 @@ import redis.clients.jedis.*;
 import redis.clients.jedis.params.XReadGroupParams;
 import redis.clients.jedis.resps.StreamEntry;
 
-public class UDPServer {
+public class InteractionServer {
 
   // Nested class to hold client state
   static class ClientInfo {
@@ -32,7 +31,7 @@ public class UDPServer {
   private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
   private Jedis jedis;
 
-  public UDPServer(int port, String redisHost, int redisPort) throws Exception {
+  public InteractionServer(int port, String redisHost, int redisPort) throws Exception {
     socket = new DatagramSocket(port);
     System.out.println("UDP Server listening on port " + port);
 
@@ -212,7 +211,7 @@ public class UDPServer {
   }
 
   public static void main(String[] args) throws Exception {
-    UDPServer server = new UDPServer(4242, "10.0.0.143", 6379);
+    InteractionServer server = new InteractionServer(4242, "10.0.0.143", 6379);
     // Example usage: after some time, broadcast a test notification
 
     /*

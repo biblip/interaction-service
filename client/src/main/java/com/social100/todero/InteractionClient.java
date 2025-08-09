@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class UDPClient {
+public class InteractionClient {
   private DatagramSocket socket;
   private InetAddress serverAddress;
   private int serverPort;
@@ -18,7 +18,7 @@ public class UDPClient {
     void onMessageReceived(String message);
   }
 
-  public UDPClient(String serverHost, int serverPort) throws Exception {
+  public InteractionClient(String serverHost, int serverPort) throws Exception {
     this.serverAddress = InetAddress.getByName(serverHost);
     this.serverPort = serverPort;
     // Use an ephemeral port (0 lets the OS pick an available port)
@@ -89,12 +89,12 @@ public class UDPClient {
 
   public static void main(String[] args) throws Exception {
     if (args.length < 2) {
-      System.out.println("Usage: UDPClient <server_host> <server_port>");
+      System.out.println("Usage: InteractionClient <server_host> <server_port>");
       return;
     }
     String serverHost = args[0];
     int serverPort = Integer.parseInt(args[1]);
-    UDPClient client = new UDPClient(serverHost, serverPort);
+    InteractionClient client = new InteractionClient(serverHost, serverPort);
     client.startReceiving();
   }
 }

@@ -10,14 +10,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class WebSocketRelayServer extends WebSocketServer {
   private final Set<WebSocket> clients = ConcurrentHashMap.newKeySet();
-  private UDPClient udpClient;
+  private InteractionClient udpClient;
 
   public WebSocketRelayServer(int port) {
     super(new InetSocketAddress("127.0.0.1", port));
     System.out.println("WebSocketRelayServer listening on port " + port);
   }
 
-  public void setUDPClient(UDPClient client) {
+  public void setUDPClient(InteractionClient client) {
     this.udpClient = client;
   }
 

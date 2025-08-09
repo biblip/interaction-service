@@ -40,7 +40,7 @@
             <configuration>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>com.social100.todero.UDPServer</mainClass>
+                  <mainClass>com.social100.todero.InteractionServer</mainClass>
                 </transformer>
               </transformers>
             </configuration>
