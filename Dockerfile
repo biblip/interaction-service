@@ -17,7 +17,7 @@ COPY src/ src/
 RUN mvn install
 
 # Expose your app port
-EXPOSE 4242
+EXPOSE 4242:4242
 
 # Compile and run with Maven Exec Plugin
 # Replace your.main.Class with your app's main class

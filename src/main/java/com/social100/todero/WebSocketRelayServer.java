@@ -12,7 +12,7 @@ public class WebSocketRelayServer extends WebSocketServer {
   private final Set<WebSocket> clients = ConcurrentHashMap.newKeySet();
 
   public WebSocketRelayServer(int port) {
-    super(new InetSocketAddress("127.0.0.1", port));
+    super(new InetSocketAddress("0.0.0.0", port));
     System.out.println("WebSocketRelayServer listening on port " + port);
   }
 
