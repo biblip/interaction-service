@@ -21,7 +21,7 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>com.social100.todero.Main</mainClass>
+                  <mainClass>com.social100.todero.InteractionServer</mainClass>
                 </transformer>
               </transformers>
             </configuration>
