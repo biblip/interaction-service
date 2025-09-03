@@ -191,7 +191,7 @@ public class RedisToWebSocketBridge {
                                     : data;
 
                             try {
-                                wsServer.broadcastToAll(outgoing);
+                                wsServer.sendToClientId(clientId, outgoing);
                                 System.out.println("[Bridge] WS broadcast -> " + outgoing);
                                 jedis.xack(streamName, groupName, entry.getID());
                             } catch (Exception ex) {

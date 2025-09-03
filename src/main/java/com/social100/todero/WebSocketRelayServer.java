@@ -4,12 +4,22 @@ import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class WebSocketRelayServer extends WebSocketServer {
-  private final Set<WebSocket> clients = ConcurrentHashMap.newKeySet();
+
+  private final WebSocketServerCommands webSocketServerCommands = new WebSocketServerCommands();
+  private final AuthClient authClient = new AuthClient();
 
   public WebSocketRelayServer(int port) {
     super(new InetSocketAddress("0.0.0.0", port));
@@ -21,35 +31,53 @@ public class WebSocketRelayServer extends WebSocketServer {
     String resourceDescriptor = handshake.getResourceDescriptor();
     if (!"/ws".equals(resourceDescriptor)) {
       System.out.println("Rejected client with invalid path: " + resourceDescriptor);
-      conn.close(1002, "Invalid path"); // 1002 = protocol error
+      conn.close(1002, "Invalid path");
       return;
     }
 
-    clients.add(conn);
+    String authHeader = handshake.getFieldValue("Authorization");
+    if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+      System.out.println("Rejected client: missing or invalid Authorization header");
+      conn.close(1008, "Missing/invalid Authorization header");
+      return;
+    }
+
+    // 🟢 Delegate full validation/registration to AuthClient
+    String token = authHeader.substring("Bearer ".length());
+    boolean ok = authClient.validateAndRegister(token, conn);
+
+    if (!ok) {
+      // validateAndRegister already handled the close
+      return;
+    }
+
     System.out.println("WebSocket client connected: " + conn.getRemoteSocketAddress());
   }
 
   @Override
   public void onClose(WebSocket conn, int code, String reason, boolean remote) {
-    clients.remove(conn);
+    // also remove from registered client map in AuthClient
+    authClient.unregister(conn);
     System.out.println("WebSocket client disconnected");
   }
 
   @Override
-  public void onMessage(WebSocket conn, String message) {
-    System.out.println("WebSocket received: " + message);
-//    try {
-//      if (udpClient != null) {
-//        udpClient.send("FromWebSocket:" + message);
-//      }
-//    } catch (Exception e) {
-//      e.printStackTrace();
-//    }
+  public void onMessage(WebSocket conn, String raw) {
+    System.out.println("WebSocket received: " + raw);
+    webSocketServerCommands.bus.setOutboundWriter(conn::send);
+    webSocketServerCommands.bus.receive(raw);
   }
 
-  public void broadcastToAll(String message) {
-    for (WebSocket ws : clients) {
-      ws.send(message);
+  /**
+   * Send a message to a previously registered client by id
+   */
+  public void sendToClientId(String clientId, String message) {
+    WebSocket target = authClient.getClientById(clientId);
+    if (target != null) {
+      System.out.println("Sending to " + clientId + " -> " + message);
+      target.send(message);
+    } else {
+      System.out.println("No client with id = " + clientId);
     }
   }
 
