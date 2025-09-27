@@ -72,7 +72,7 @@ public class WebSocketRelayServer extends WebSocketServer {
    * Send a message to a previously registered client by id
    */
   public void sendToClientId(String clientId, String message) {
-    WebSocket target = authClient.getClientById(clientId);
+    WebSocket target = authClient.webSocketRegistry.getConnection(clientId);
     if (target != null) {
       System.out.println("Sending to " + clientId + " -> " + message);
       target.send(message);

@@ -20,9 +20,7 @@ public class AuthClient {
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
-  // clientId -> WebSocketConnection
-  private final Map<String, WebSocket> serversForwardMap = new ConcurrentHashMap<>();
-  private final Map<WebSocket, String> serversReverseMap = new ConcurrentHashMap<>();
+  WebSocketRegistry webSocketRegistry = new WebSocketRegistry();
 
   public boolean validateAndRegister(String token, WebSocket conn) {
     try {
@@ -33,14 +31,11 @@ public class AuthClient {
         return false;
       }
 
-      // Build a client ID using the device_id + user_id + nodeId
-      String clientId = validation.deviceId() + ":" + validation.userId();
+      // Build a client ID using the user_id + device_id
+      String clientId = validation.userId() + ":" + validation.deviceId();
 
       // Store the connection for later use
-      serversForwardMap.put(clientId, conn);
-      serversReverseMap.put(conn, clientId);
-
-      System.out.println(Arrays.toString(serversForwardMap.keySet().toArray()));
+      webSocketRegistry.addByClientId(clientId, conn);
 
       System.out.println("Client registered with id = " + clientId);
       return true;
@@ -100,14 +95,7 @@ public class AuthClient {
   }
 
   public void unregister(WebSocket conn) {
-    String clientId = serversReverseMap.remove(conn);
-    if (clientId != null) {
-      serversForwardMap.remove(clientId);
-    }
-  }
-
-  public WebSocket getClientById(String clientId) {
-    return serversForwardMap.get(clientId);
+    webSocketRegistry.removeByConnection(conn);
   }
 
   // 🧱 Small record that holds the validation + extracted fields
