@@ -4,17 +4,7 @@ import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 public class WebSocketRelayServer extends WebSocketServer {
 

@@ -13,7 +13,7 @@ public class CommandFramework {
 
   // === Command message (used for both request and response) ===
   public static class CommandMessage {
-    public enum Kind { REQUEST, RESPONSE }
+    public enum Kind { REQUEST, RESPONSE, ERROR }
 
     private final String id;
     private final String name;
