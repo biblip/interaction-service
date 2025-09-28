@@ -1,7 +1,9 @@
 package com.social100.todero;
 
 import com.social100.todero.cmd.CommandFramework;
+import com.social100.todero.cmd.ParamParser;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -14,6 +16,24 @@ public class WebSocketServerCommands {
   private final RedisPublisher publisher = new RedisPublisher("10.0.0.143", 6379, "client-messages");
 
   public WebSocketServerCommands() {
+
+    final ParamParser.ParamSpec SEND_MESSAGE_SPEC = ParamParser.ParamSpec.builder()
+        .addKey(
+            ParamParser.KeySpec.builder("TO")
+                .required(true)
+                .allowEmpty(false)
+                .multi(false)
+                .validator(v -> !v.trim().isEmpty())
+        )
+        .addKey(
+            ParamParser.KeySpec.builder("MESSAGE")
+                .required(true)
+                .allowEmpty(true)
+                .multi(false)
+        )
+        .allowUnknownKeys(false)
+        .build();
+
     // REGISTER
     registry.register("REGISTER", req -> {
       System.out.println("REGISTER" + "  " + req.getParams());
@@ -26,23 +46,29 @@ public class WebSocketServerCommands {
 
     // SEND_MESSAGE
     registry.register("SEND_MESSAGE", req -> {
-      List<String> p = req.getParams();
-
-      // Minimal contract: [0]=clientId, [1]=data
-      String clientId = p.size() > 0 ? p.get(0) : null;
-      String data     = p.size() > 1 ? p.get(1) : null;
-
       try {
-        String id = publisher.publish(clientId, data);
-        // If your framework expects a response, return an ACK; otherwise return null.
+        ParamParser.ParsedParams parsed = ParamParser.parse(req.getParams(), SEND_MESSAGE_SPEC);
+
+        String clientId = parsed.require("TO");
+        String message  = parsed.require("MESSAGE");
+
+        String xaddId = publisher.publish(clientId, message);
+
         return new CommandFramework.CommandMessage(
             req.getId(),
             "ACK",
-            List.of("xadd_id=" + id),
+            List.of("xadd_id=" + xaddId, "to=" + clientId),
             CommandFramework.CommandMessage.Kind.RESPONSE
         );
+
+      } catch (IllegalArgumentException iae) {
+        return new CommandFramework.CommandMessage(
+            req.getId(),
+            "ERROR",
+            List.of("BadRequest: " + iae.getMessage()),
+            CommandFramework.CommandMessage.Kind.ERROR
+        );
       } catch (Exception e) {
-        // Surface an error response so callers know it failed
         return new CommandFramework.CommandMessage(
             req.getId(),
             "ERROR",
