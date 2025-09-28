@@ -93,6 +93,18 @@ public class WebSocketRegistry {
     }
   }
 
+  public Map<String, org.java_websocket.WebSocket> snapshotForward() {
+    // clientId -> conn
+    return java.util.Map.copyOf(serversForwardMap);
+  }
+
+  public java.util.Set<String> getAllKnownClientIds() {
+    // Union of user->devices and forward keys, in case either side is ahead
+    java.util.Set<String> ids = new java.util.HashSet<>(serversForwardMap.keySet());
+    devicesIdsForUserId.forEach((user, devs) -> devs.forEach(d -> ids.add(user + ":" + d)));
+    return java.util.Set.copyOf(ids);
+  }
+
   // ------- Internals -------
 
   private void removeDeviceUnsafe(String userId, String deviceId) {

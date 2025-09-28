@@ -21,6 +21,7 @@ public class AuthClient {
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   WebSocketRegistry webSocketRegistry = new WebSocketRegistry();
+  RegistryMonitor monitor = new RegistryMonitor(webSocketRegistry, 10);
 
   public boolean validateAndRegister(String token, WebSocket conn) {
     try {
@@ -36,6 +37,8 @@ public class AuthClient {
 
       // Store the connection for later use
       webSocketRegistry.addByClientId(clientId, conn);
+
+      monitor.triggerNow("Added ClientId : " + clientId);
 
       System.out.println("Client registered with id = " + clientId);
       return true;
@@ -96,6 +99,7 @@ public class AuthClient {
 
   public void unregister(WebSocket conn) {
     webSocketRegistry.removeByConnection(conn);
+    monitor.triggerNow("unregister");
   }
 
   // 🧱 Small record that holds the validation + extracted fields
