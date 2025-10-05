@@ -52,6 +52,13 @@ public class WebSocketServerCommands {
         String clientId = parsed.require("TO");
         String message  = parsed.require("MESSAGE");
 
+        clientId = clientId == null ? null : clientId.trim();
+        message  = message  == null ? null : message.trim();
+
+        if (clientId == null || clientId.isEmpty()) {
+          throw new IllegalArgumentException("TO must be a non-empty client id");
+        }
+
         String xaddId = publisher.publish(clientId, message);
 
         return new CommandFramework.CommandMessage(

@@ -49,22 +49,66 @@ public class CommandFramework {
     }
 
     public CommandMessage deserialize(String raw) {
-      String[] parts = raw.split(":");
-      CommandMessage.Kind kind = CommandMessage.Kind.valueOf(parts[0]);
-      String id = parts[1];
-      String name = parts[2];
+      List<String> parts = splitOnUnescapedColons(raw);
+      if (parts.size() < 3) {
+        throw new IllegalArgumentException("Invalid message: " + raw);
+      }
+      CommandMessage.Kind kind = CommandMessage.Kind.valueOf(parts.get(0));
+      String id = parts.get(1);
+      String name = parts.get(2);
       List<String> params = new ArrayList<>();
-      for (int i = 3; i < parts.length; i++) {
-        params.add(unescape(parts[i]));
+      for (int i = 3; i < parts.size(); i++) {
+        params.add(unescape(parts.get(i)));
       }
       return new CommandMessage(id, name, params, kind);
+    }
+
+    private List<String> splitOnUnescapedColons(String s) {
+      List<String> out = new ArrayList<>();
+      StringBuilder cur = new StringBuilder();
+      boolean escaping = false;
+      for (int i = 0; i < s.length(); i++) {
+        char c = s.charAt(i);
+        if (escaping) {
+          cur.append(c);       // keep the escaped char as-is (we'll unescape later)
+          escaping = false;
+        } else if (c == '\\') {
+          escaping = true;     // next char is escaped
+          cur.append(c);       // keep the backslash so unescape() can process it
+        } else if (c == ':') {
+          out.add(cur.toString());
+          cur.setLength(0);
+        } else {
+          cur.append(c);
+        }
+      }
+      if (escaping) cur.append('\\'); // trailing backslash; keep it
+      out.add(cur.toString());
+      return out;
     }
 
     private String escape(String s) {
       return s.replace("\\", "\\\\").replace(":", "\\:");
     }
+
     private String unescape(String s) {
-      return s.replace("\\:", ":").replace("\\\\", "\\");
+      StringBuilder out = new StringBuilder();
+      boolean escaping = false;
+      for (int i = 0; i < s.length(); i++) {
+        char c = s.charAt(i);
+        if (escaping) {
+          // Only two escapes are defined: '\:' -> ':' and '\\' -> '\'.
+          if (c == ':' || c == '\\') out.append(c);
+          else { out.append('\\').append(c); } // preserve unknown escapes literally
+          escaping = false;
+        } else if (c == '\\') {
+          escaping = true;
+        } else {
+          out.append(c);
+        }
+      }
+      if (escaping) out.append('\\'); // trailing backslash literal
+      return out.toString();
     }
   }
 
@@ -86,10 +130,8 @@ public class CommandFramework {
   // === CommandBus with send/request/response correlation ===
   public static class CommandBus {
     private final CommandRegistry registry;
-    @Getter
     private final CommandCodec codec;
     private final Map<String, CompletableFuture<CommandMessage>> pending = new ConcurrentHashMap<>();
-    @Setter
     private Consumer<String> outboundWriter;
 
     private final long    defaultTimeout;
@@ -104,6 +146,14 @@ public class CommandFramework {
       this.codec = codec;
       this.defaultTimeout = defaultTimeout;
       this.defaultTimeoutUnit = defaultTimeoutUnit;
+    }
+
+    public void setOutboundWriter(Consumer<String> outboundWriter) {
+      this.outboundWriter = outboundWriter;
+    }
+
+    public CommandCodec getCodec() {
+      return this.codec;
     }
 
     // request with custom timeout
