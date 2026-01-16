@@ -19,6 +19,13 @@ public class WebSocketServerCommands {
 
     final ParamParser.ParamSpec SEND_MESSAGE_SPEC = ParamParser.ParamSpec.builder()
         .addKey(
+            ParamParser.KeySpec.builder("FROM")
+                .required(true)
+                .allowEmpty(false)
+                .multi(false)
+                .validator(v -> !v.trim().isEmpty())
+        )
+        .addKey(
             ParamParser.KeySpec.builder("TO")
                 .required(true)
                 .allowEmpty(false)
@@ -35,31 +42,33 @@ public class WebSocketServerCommands {
         .build();
 
     // REGISTER
-    registry.register("REGISTER", req -> {
-      System.out.println("REGISTER" + "  " + req.getParams());
-      return new CommandFramework.CommandMessage(
-          req.getId(),
-          "PONG",
-          List.of("Hi there, "+req.getParams().get(0)),
-          CommandFramework.CommandMessage.Kind.RESPONSE);
-    });
+//    registry.register("REGISTER", req -> {
+//      System.out.println("REGISTER" + "  " + req.getParams());
+//      return new CommandFramework.CommandMessage(
+//          req.getId(),
+//          "PONG",
+//          List.of("Hi there, "+req.getParams().get(0)),
+//          CommandFramework.CommandMessage.Kind.RESPONSE);
+//    });
 
     // SEND_MESSAGE
     registry.register("SEND_MESSAGE", req -> {
       try {
         ParamParser.ParsedParams parsed = ParamParser.parse(req.getParams(), SEND_MESSAGE_SPEC);
 
+        String fromClientId = parsed.require("FROM");
         String clientId = parsed.require("TO");
         String message  = parsed.require("MESSAGE");
 
-        clientId = clientId == null ? null : clientId.trim();
-        message  = message  == null ? null : message.trim();
+        fromClientId = fromClientId.trim();
+        clientId = clientId.trim();
+        message  = message.trim();
 
-        if (clientId == null || clientId.isEmpty()) {
+        if (fromClientId.isEmpty() || clientId.isEmpty()) {
           throw new IllegalArgumentException("TO must be a non-empty client id");
         }
 
-        String xaddId = publisher.publish(clientId, message);
+        String xaddId = publisher.publish(fromClientId, clientId, message);
 
         return new CommandFramework.CommandMessage(
             req.getId(),

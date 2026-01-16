@@ -43,12 +43,13 @@ public class RedisPublisher implements AutoCloseable {
    * Publish to the stream with the fields your bridge expects.
    * Optionally include extra fields if you pass them.
    */
-  public String publish(String clientId, String data, Map<String, String> extraFields) {
+  public String publish(String fromClientId, String clientId, String data, Map<String, String> extraFields) {
     try (Jedis jedis = pool.getResource()) {
       // optional immediate connectivity check; cheap + helps fail fast
       jedis.ping();
 
       Map<String, String> fields = new HashMap<>();
+      if (fromClientId != null) fields.put("from", fromClientId);
       if (clientId != null) fields.put("client_id", clientId);
       if (data != null)     fields.put("data", data);
       if (extraFields != null) fields.putAll(extraFields);
@@ -60,8 +61,8 @@ public class RedisPublisher implements AutoCloseable {
     }
   }
 
-  public String publish(String clientId, String data) {
-    return publish(clientId, data, null);
+  public String publish(String fromClientId, String clientId, String data) {
+    return publish(fromClientId, clientId, data, null);
   }
 
   @Override public void close() {

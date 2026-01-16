@@ -18,7 +18,7 @@ public class AuthClient {
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   WebSocketRegistry webSocketRegistry = new WebSocketRegistry();
-  RegistryMonitor monitor = new RegistryMonitor(webSocketRegistry, 10);
+  RegistryMonitor monitor = new RegistryMonitor(webSocketRegistry, 600);
 
   public boolean validateAndRegister(String token, WebSocket conn) {
     try {

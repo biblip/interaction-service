@@ -1,5 +1,6 @@
 package com.social100.todero;
 
+import com.social100.todero.cmd.CmdArgs;
 import redis.clients.jedis.*;
 import redis.clients.jedis.params.XReadGroupParams;
 import redis.clients.jedis.StreamEntryID;
@@ -177,6 +178,7 @@ public class RedisToWebSocketBridge {
                     // Process & ACK
                     for (Map.Entry<String, List<StreamEntry>> stream : entries) {
                         for (StreamEntry entry : stream.getValue()) {
+                            String fromClientId = entry.getFields().get("from");
                             String clientId = entry.getFields().get("client_id");
                             String data = entry.getFields().get("data");
 
@@ -186,13 +188,16 @@ public class RedisToWebSocketBridge {
                                 continue;
                             }
 
-                            String outgoing = (clientId != null && !clientId.isEmpty())
-                                    ? ("FromRedis[" + clientId + "]:" + data)
-                                    : data;
+                            /*
+                            if (fromClientId == null || fromClientId.isEmpty() || clientId == null || clientId.isEmpty()) {
+                              System.err.println("[Bridge] No source/target clientId provided for message : '" + data + "'");
+                              continue;
+                            }*/
 
                             try {
-                                wsServer.sendToClientId(clientId, outgoing);
-                                System.out.println("[Bridge] WS broadcast -> " + outgoing);
+                                String[] args = CmdArgs.sendMessageArgs(fromClientId, clientId, data);
+                                wsServer.sendToClientId(clientId, args);
+                                System.out.println("[Bridge] WS broadcast -> " + data);
                                 jedis.xack(streamName, groupName, entry.getID());
                             } catch (Exception ex) {
                                 System.err.println("[Bridge] WS send failed: " + ex.getMessage());

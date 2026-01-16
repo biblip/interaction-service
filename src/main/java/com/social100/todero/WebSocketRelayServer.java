@@ -5,6 +5,7 @@ import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 
 public class WebSocketRelayServer extends WebSocketServer {
 
@@ -54,21 +55,38 @@ public class WebSocketRelayServer extends WebSocketServer {
   @Override
   public void onMessage(WebSocket conn, String raw) {
     System.out.println("WebSocket received: " + raw);
-    webSocketServerCommands.bus.setOutboundWriter(conn::send);
-    webSocketServerCommands.bus.receive(raw);
+    synchronized (webSocketServerCommands) {
+      webSocketServerCommands.bus.setOutboundWriter(conn::send);
+      webSocketServerCommands.bus.receive(raw);
+    }
   }
 
   /**
    * Send a message to a previously registered client by id
    */
-  public void sendToClientId(String clientId, String message) {
-    WebSocket target = authClient.webSocketRegistry.getConnection(clientId);
+  public void sendToClientId(String clientId, String ...params) {
+    WebSocket target = authClient.webSocketRegistry.getConnection(extractGlobalClientIdOnly(clientId));
     if (target != null) {
-      System.out.println("Sending to " + clientId + " -> " + message);
-      target.send(message);
+      System.out.println("Sending to " + clientId + " -> " + Arrays.toString(params));
+      synchronized (webSocketServerCommands) {
+        webSocketServerCommands.bus.setOutboundWriter(target::send);
+        webSocketServerCommands.bus.request("SEND_MESSAGE", params);
+      }
     } else {
       System.out.println("No client with id = " + clientId);
     }
+  }
+
+  public static String extractGlobalClientIdOnly(String clientId) {
+    if (clientId == null) return null;
+
+    int first = clientId.indexOf(':');
+    if (first < 0) return clientId; // no ":" at all
+
+    int second = clientId.indexOf(':', first + 1);
+    if (second < 0) return clientId; // only one ":" -> return whole string (or clientId.substring(0, first) if you prefer)
+
+    return clientId.substring(0, second);
   }
 
   @Override
